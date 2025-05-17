@@ -1,65 +1,66 @@
-
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 
-const ArtworkModel = ({ artwork, position = [0, 0, -2] }) => {
+const ArtworkModel = ({ artwork, position = [0, 0, -2], scale = [1, 1, 1], rotationY = 0 }) => {
   const modelRef = useRef();
+  const groupRef = useRef();
   
-  // Apply animations if specified in the artwork
   useFrame((state, delta) => {
-    if (!modelRef.current) return;
+    if (!modelRef.current || !groupRef.current) return;
     
+    groupRef.current.rotation.y = rotationY;
+
     if (artwork.animation === 'rotate') {
       modelRef.current.rotation.y += delta * 0.5;
     } else if (artwork.animation === 'flow') {
       modelRef.current.rotation.y += delta * 0.2;
-      modelRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime) * 0.1;
+      modelRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.1 * scale[1];
     }
   });
 
-  // Render different 3D models based on artwork type
   const renderModel = () => {
-    const { modelType, modelScale, modelColor } = artwork;
+    const { modelType, modelColor } = artwork;
+    const effectiveScale = artwork.modelScale || [1,1,1];
     
     switch (modelType) {
       case 'cube':
         return (
-          <mesh ref={modelRef} castShadow>
-            <boxGeometry args={modelScale} />
+          <mesh ref={modelRef} castShadow scale={effectiveScale}>
+            <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color={modelColor} />
           </mesh>
         );
       
       case 'sphere':
         return (
-          <mesh ref={modelRef} castShadow>
-            <sphereGeometry args={[modelScale[0], 32, 32]} />
+          <mesh ref={modelRef} castShadow scale={effectiveScale}>
+            <sphereGeometry args={[0.5, 32, 32]} />
             <meshStandardMaterial color={modelColor} />
           </mesh>
         );
       
       case 'plane':
         return (
-          <mesh ref={modelRef} castShadow>
-            <planeGeometry args={[modelScale[0], modelScale[1]]} />
+          <mesh ref={modelRef} castShadow scale={effectiveScale}>
+            <planeGeometry args={[1, 1]} />
             <meshStandardMaterial 
               color={modelColor} 
-              side={2} // Double-sided
+              side={2}
             />
           </mesh>
         );
       
       case 'particles':
         return (
-          <group ref={modelRef}>
+          <group ref={modelRef} scale={effectiveScale}>
             {Array.from({ length: 50 }).map((_, i) => (
               <mesh 
                 key={i} 
                 position={[
-                  (Math.random() - 0.5) * modelScale[0],
-                  (Math.random() - 0.5) * modelScale[1],
-                  (Math.random() - 0.5) * modelScale[2]
+                  (Math.random() - 0.5),
+                  (Math.random() - 0.5),
+                  (Math.random() - 0.5)
                 ]}
               >
                 <sphereGeometry args={[0.02, 16, 16]} />
@@ -74,10 +75,8 @@ const ArtworkModel = ({ artwork, position = [0, 0, -2] }) => {
         );
       
       case 'custom':
-        // For custom models, we'd normally load a 3D model file
-        // For this example, we'll use a simple geometry
         return (
-          <group ref={modelRef}>
+          <group ref={modelRef} scale={effectiveScale}>
             <mesh castShadow position={[0, 0, 0]}>
               <torusKnotGeometry args={[0.3, 0.1, 64, 16]} />
               <meshStandardMaterial color={modelColor} />
@@ -87,7 +86,7 @@ const ArtworkModel = ({ artwork, position = [0, 0, -2] }) => {
       
       default:
         return (
-          <mesh ref={modelRef} castShadow>
+          <mesh ref={modelRef} castShadow scale={effectiveScale}>
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color={modelColor || "#ffffff"} />
           </mesh>
@@ -95,17 +94,18 @@ const ArtworkModel = ({ artwork, position = [0, 0, -2] }) => {
     }
   };
 
+  const textYOffset = (artwork.modelScale ? artwork.modelScale[1] * 0.5 : 0.5) + 0.15;
+
   return (
-    <group position={position}>
+    <group ref={groupRef} position={position} scale={scale}>
       {renderModel()}
       
-      {/* Artwork label */}
       <Text
-        position={[0, modelRef.current ? -0.6 : -0.6, 0]}
+        position={[0, -textYOffset, 0]}
         fontSize={0.1}
         color="white"
         anchorX="center"
-        anchorY="middle"
+        anchorY="top"
         outlineWidth={0.01}
         outlineColor="#000000"
       >
@@ -113,11 +113,11 @@ const ArtworkModel = ({ artwork, position = [0, 0, -2] }) => {
       </Text>
       
       <Text
-        position={[0, modelRef.current ? -0.75 : -0.75, 0]}
+        position={[0, -textYOffset - 0.12, 0]}
         fontSize={0.06}
         color="#cccccc"
         anchorX="center"
-        anchorY="middle"
+        anchorY="top"
         outlineWidth={0.005}
         outlineColor="#000000"
       >

@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Box as Cube, Image, Cpu } from 'lucide-react';
+import { Box as Cube, Image, Cpu, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-const ARPlaceholder = ({ artwork }) => {
+const ARPlaceholder = ({ artwork, error }) => {
   const getArtworkIcon = () => {
     if (!artwork) return <Cube className="h-16 w-16 text-primary" />;
     
@@ -20,41 +20,52 @@ const ARPlaceholder = ({ artwork }) => {
   };
 
   return (
-    <div className="relative w-full h-full bg-gradient-to-b from-black/70 to-background flex flex-col items-center justify-center p-4">
+    <div className="relative w-full h-full bg-gradient-to-b from-black/70 to-background flex flex-col items-center justify-center p-4 text-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-center max-w-md"
+        className="max-w-md"
       >
-        <motion.div 
-          className="mx-auto mb-6"
-          animate={{ y: [0, -10, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-        >
-          {getArtworkIcon()}
-        </motion.div>
+        {error ? (
+          <AlertTriangle className="h-16 w-16 text-destructive mx-auto mb-6" />
+        ) : (
+          <motion.div 
+            className="mx-auto mb-6"
+            animate={{ y: [0, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+          >
+            {getArtworkIcon()}
+          </motion.div>
+        )}
         
         <h2 className="text-2xl font-bold mb-4">
-          {artwork 
-            ? `Vista previa: ${artwork.title}` 
-            : "Experiencia AR no disponible"}
+          {error 
+            ? "Error de AR" 
+            : artwork 
+              ? `Vista previa: ${artwork.title}` 
+              : "Experiencia AR no disponible"}
         </h2>
         
         <p className="text-muted-foreground mb-6">
-          {artwork 
-            ? `Esta es una vista previa de "${artwork.title}" por ${artwork.artist}. Para ver esta obra en realidad aumentada, necesitas un dispositivo compatible con WebXR.` 
-            : "La realidad aumentada no está disponible en tu dispositivo. Para disfrutar de la experiencia completa, intenta acceder desde un dispositivo móvil compatible con AR."}
+          {error 
+            ? error
+            : artwork 
+              ? `Esta es una vista previa de "${artwork.title}" por ${artwork.artist}. Para ver esta obra en realidad aumentada, necesitas un dispositivo y navegador compatibles con WebXR.` 
+              : "La realidad aumentada no está disponible en tu dispositivo o navegador. Para disfrutar de la experiencia completa, intenta acceder desde un dispositivo móvil compatible con AR."}
         </p>
         
-        <div className="glassmorphism p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">Dispositivos recomendados:</h3>
-          <ul className="text-sm text-muted-foreground text-left list-disc pl-5">
-            <li>iPhone o iPad con iOS 12 o superior (Safari)</li>
-            <li>Dispositivos Android con ARCore (Chrome)</li>
-            <li>Navegadores compatibles con WebXR</li>
+        <div className="glassmorphism p-4 rounded-lg mb-6">
+          <h3 className="text-lg font-semibold mb-2">Requisitos para AR:</h3>
+          <ul className="text-sm text-muted-foreground text-left list-disc pl-5 space-y-1">
+            <li>Dispositivo móvil moderno (iOS o Android).</li>
+            <li>Navegador actualizado (Chrome en Android, Safari en iOS).</li>
+            <li>Permisos de cámara y sensores de movimiento habilitados para el navegador.</li>
+            <li>Conexión a internet estable.</li>
           </ul>
         </div>
+        
+        <Button onClick={() => window.location.reload()}>Reintentar Carga</Button>
       </motion.div>
       
       <motion.div 
