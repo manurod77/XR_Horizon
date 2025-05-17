@@ -7,7 +7,44 @@ export function ARSupportProvider({ children }) {
   const [isARSupported, setIsARSupported] = useState(null);
   const [isCheckingSupport, setIsCheckingSupport] = useState(true);
   const [arSupportError, setArSupportError] = useState(null);
+  const [cameraPermission, setCameraPermission] = useState(null);
   const { toast } = useToast();
+
+  const checkCameraPermission = async () => {
+    try {
+      // Primero verificar si el navegador soporta getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Tu navegador no soporta acceso a la cámara");
+      }
+
+      // Intentar obtener acceso a la cámara
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
+      // Detener el stream después de verificar
+      stream.getTracks().forEach(track => track.stop());
+      setCameraPermission('granted');
+      return true;
+    } catch (error) {
+      console.error('Error al acceder a la cámara:', error);
+      setCameraPermission('denied');
+      
+      if (error.name === 'NotAllowedError') {
+        throw new Error("Permiso de cámara denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador.");
+      } else if (error.name === 'NotFoundError') {
+        throw new Error("No se encontró ninguna cámara en tu dispositivo.");
+      } else if (error.name === 'NotReadableError') {
+        throw new Error("La cámara está siendo usada por otra aplicación.");
+      } else {
+        throw new Error("Error al acceder a la cámara: " + error.message);
+      }
+    }
+  };
 
   useEffect(() => {
     async function checkARSupport() {
@@ -15,17 +52,12 @@ export function ARSupportProvider({ children }) {
       setArSupportError(null);
       
       try {
-        // Primero verificar si el navegador soporta WebXR
+        // Verificar permisos de cámara primero
+        await checkCameraPermission();
+
+        // Verificar soporte WebXR
         if (!navigator.xr) {
           throw new Error("WebXR no está disponible en este navegador");
-        }
-
-        // Verificar permisos de cámara
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          stream.getTracks().forEach(track => track.stop());
-        } catch (error) {
-          throw new Error("No se pudo acceder a la cámara. Verifica los permisos.");
         }
 
         // Verificar soporte AR
@@ -47,10 +79,13 @@ export function ARSupportProvider({ children }) {
         setArSupportError(error.message);
         
         let errorMessage = "Error al verificar el soporte AR: ";
+        let errorTitle = "AR no disponible";
+        
         if (error.message.includes("WebXR")) {
           errorMessage = "WebXR no está disponible en este navegador. Intenta con Chrome o Safari en un dispositivo móvil compatible.";
         } else if (error.message.includes("cámara")) {
-          errorMessage = "No se pudo acceder a la cámara. Por favor, verifica los permisos en la configuración de tu navegador.";
+          errorTitle = "Error de cámara";
+          errorMessage = error.message;
         } else if (error.message.includes("sensores")) {
           errorMessage = "Tu dispositivo no tiene los sensores necesarios para AR (giroscopio y acelerómetro).";
         } else {
@@ -58,7 +93,7 @@ export function ARSupportProvider({ children }) {
         }
 
         toast({
-          title: "AR no disponible",
+          title: errorTitle,
           description: errorMessage,
           variant: "destructive",
           duration: 7000,
@@ -71,8 +106,24 @@ export function ARSupportProvider({ children }) {
     checkARSupport();
   }, [toast]);
 
+  const requestCameraPermission = async () => {
+    try {
+      await checkCameraPermission();
+      return true;
+    } catch (error) {
+      setArSupportError(error.message);
+      return false;
+    }
+  };
+
   return (
-    <ARSupportContext.Provider value={{ isARSupported, isCheckingSupport, arSupportError }}>
+    <ARSupportContext.Provider value={{ 
+      isARSupported, 
+      isCheckingSupport, 
+      arSupportError,
+      cameraPermission,
+      requestCameraPermission 
+    }}>
       {children}
     </ARSupportContext.Provider>
   );

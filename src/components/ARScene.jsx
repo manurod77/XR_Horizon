@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { CameraOff } from 'lucide-react';
 
 const ARScene = ({ artwork, scale, rotation, isPlacementMode = true }) => {
-  const { isARSupported, arSupportError } = useARSupport();
+  const { isARSupported, arSupportError, cameraPermission, requestCameraPermission } = useARSupport();
   const { toast } = useToast();
   const [isARSessionActive, setIsARSessionActive] = useState(false);
   const [placedArtworks, setPlacedArtworks] = useState([]);
@@ -17,26 +17,12 @@ const ARScene = ({ artwork, scale, rotation, isPlacementMode = true }) => {
   const [isCameraReady, setIsCameraReady] = useState(false);
 
   useEffect(() => {
-    // Verificar permisos de cámara al montar el componente
-    const checkCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop());
-        setIsCameraReady(true);
-      } catch (error) {
-        console.error('Error al acceder a la cámara:', error);
-        setSessionError('No se pudo acceder a la cámara. Por favor, asegúrate de dar permiso de acceso.');
-        toast({
-          title: "Error de cámara",
-          description: "No se pudo acceder a la cámara. Verifica los permisos en la configuración de tu navegador.",
-          variant: "destructive",
-          duration: 7000,
-        });
-      }
+    const initializeCamera = async () => {
+      const success = await requestCameraPermission();
+      setIsCameraReady(success);
     };
-
-    checkCameraPermission();
-  }, [toast]);
+    initializeCamera();
+  }, [requestCameraPermission]);
 
   const handleARSessionStarted = useCallback(() => {
     if (!isCameraReady) {
@@ -147,16 +133,26 @@ const ARScene = ({ artwork, scale, rotation, isPlacementMode = true }) => {
     return <ARPlaceholder artwork={artwork} error={arSupportError} />;
   }
 
-  if (sessionError) {
+  if (!isCameraReady) {
     return (
       <div className="ar-scene flex flex-col items-center justify-center p-4 text-center">
         <CameraOff className="h-16 w-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-bold text-destructive mb-2">Error de Sesión AR</h2>
-        <p className="text-muted-foreground mb-4">{sessionError}</p>
-        <p className="text-sm text-muted-foreground mb-4">
-          Asegúrate de que tu navegador tenga permisos para acceder a la cámara y que no haya otras aplicaciones usando la cámara.
+        <h2 className="text-2xl font-bold text-destructive mb-2">Cámara no disponible</h2>
+        <p className="text-muted-foreground mb-4">
+          {sessionError || 'Esperando acceso a la cámara...'}
         </p>
-        <Button onClick={() => window.location.reload()}>Reintentar</Button>
+        <div className="space-y-4">
+          <Button onClick={() => window.location.reload()}>Reintentar</Button>
+          <div className="text-sm text-muted-foreground">
+            <p className="mb-2">Si el problema persiste:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Asegúrate de que tu dispositivo tenga una cámara</li>
+              <li>Verifica que no haya otras apps usando la cámara</li>
+              <li>Permite el acceso a la cámara en la configuración de tu navegador</li>
+              <li>Intenta cerrar y volver a abrir el navegador</li>
+            </ol>
+          </div>
+        </div>
       </div>
     );
   }
