@@ -21,6 +21,8 @@ const ARView = () => {
   const [isArtworkSelectorOpen, setIsArtworkSelectorOpen] = useState(false);
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -30,6 +32,7 @@ const ARView = () => {
       const artwork = getArtworkById(artworkId);
       if (artwork) {
         setSelectedArtwork(artwork);
+        setIsLoading(false);
         if (isARSupported) {
           toast({
             title: "Obra seleccionada",
@@ -37,6 +40,8 @@ const ARView = () => {
           });
         }
       } else {
+        setError("La obra de arte solicitada no se pudo encontrar.");
+        setIsLoading(false);
         toast({
           title: "Obra no encontrada",
           description: "La obra de arte solicitada no se pudo encontrar.",
@@ -44,6 +49,8 @@ const ARView = () => {
         });
         navigate('/');
       }
+    } else {
+      setIsLoading(false);
     }
   }, [location.search, getArtworkById, toast, navigate, isARSupported]);
 
@@ -88,14 +95,32 @@ const ARView = () => {
     setIsArtworkSelectorOpen(!isArtworkSelectorOpen);
   };
 
-  if (isCheckingSupport) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <Header title="Explorar en AR" showBackButton={true} />
         <div className="flex-grow flex flex-col items-center justify-center text-center p-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Verificando compatibilidad AR...</h2>
+          <h2 className="text-2xl font-semibold mb-2">Cargando experiencia AR...</h2>
           <p className="text-muted-foreground">Esto tomará un momento.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <Header title="Explorar en AR" showBackButton={true} />
+        <div className="flex-grow flex flex-col items-center justify-center text-center p-4">
+          <div className="text-destructive mb-4">
+            <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-semibold mb-2">Error</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Reintentar</Button>
         </div>
       </div>
     );

@@ -142,14 +142,23 @@ const ARScene = ({ artwork, scale, rotation, isPlacementMode = true }) => {
           optionalFeatures: ['dom-overlay'],
           domOverlay: { root: document.body }
         }}
-        onSessionStart={handleARSessionStarted}
-        onSessionEnd={handleARSessionEnded}
+        onStart={handleARSessionStarted}
+        onEnd={handleARSessionEnded}
         onError={handleSessionError}
         className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 px-6 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-full font-semibold shadow-xl hover:from-primary/90 hover:to-purple-500/90 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
       >
         {isARSessionActive ? "Salir de AR" : "Iniciar AR"}
       </ARButton>
-      <Canvas>
+      <Canvas
+        gl={{
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance',
+          failIfMajorPerformanceCaveat: true
+        }}
+        dpr={[1, 2]}
+        camera={{ position: [0, 0, 0], near: 0.1, far: 1000 }}
+      >
         <XR>
           <ambientLight intensity={1.2} />
           <directionalLight position={[5, 10, 7.5]} intensity={1.5} castShadow />
