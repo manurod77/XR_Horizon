@@ -13,38 +13,53 @@ export function ARSupportProvider({ children }) {
     async function checkARSupport() {
       setIsCheckingSupport(true);
       setArSupportError(null);
+      
       try {
+        // Primero verificar si el navegador soporta WebXR
         if (!navigator.xr) {
-          setIsARSupported(false);
-          setArSupportError("WebXR no está disponible en este navegador. Intenta con Chrome o Safari en un dispositivo móvil compatible.");
-          toast({
-            title: "WebXR no disponible",
-            description: "Tu navegador no soporta WebXR. Intenta con Chrome o Safari en un dispositivo móvil compatible.",
-            variant: "destructive",
-            duration: 7000,
-          });
-          return;
+          throw new Error("WebXR no está disponible en este navegador");
         }
 
+        // Verificar permisos de cámara
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          stream.getTracks().forEach(track => track.stop());
+        } catch (error) {
+          throw new Error("No se pudo acceder a la cámara. Verifica los permisos.");
+        }
+
+        // Verificar soporte AR
         const isSupported = await navigator.xr.isSessionSupported('immersive-ar');
         setIsARSupported(isSupported);
 
         if (!isSupported) {
-          setArSupportError("AR no es compatible con este dispositivo/navegador. Algunas funciones pueden no estar disponibles.");
-          toast({
-            title: "AR no compatible",
-            description: "Tu dispositivo no parece soportar WebXR para realidad aumentada. Algunas funciones pueden no estar disponibles.",
-            variant: "destructive",
-            duration: 7000,
-          });
+          throw new Error("AR no es compatible con este dispositivo/navegador");
         }
+
+        // Verificar sensores de movimiento
+        if (!window.DeviceMotionEvent && !window.DeviceOrientationEvent) {
+          throw new Error("Tu dispositivo no tiene los sensores necesarios para AR");
+        }
+
       } catch (error) {
         console.error("Error checking AR support:", error);
         setIsARSupported(false);
-        setArSupportError("Error al verificar el soporte AR. Por favor, asegúrate de que tu navegador tenga permisos para acceder a la cámara y sensores de movimiento.");
+        setArSupportError(error.message);
+        
+        let errorMessage = "Error al verificar el soporte AR: ";
+        if (error.message.includes("WebXR")) {
+          errorMessage = "WebXR no está disponible en este navegador. Intenta con Chrome o Safari en un dispositivo móvil compatible.";
+        } else if (error.message.includes("cámara")) {
+          errorMessage = "No se pudo acceder a la cámara. Por favor, verifica los permisos en la configuración de tu navegador.";
+        } else if (error.message.includes("sensores")) {
+          errorMessage = "Tu dispositivo no tiene los sensores necesarios para AR (giroscopio y acelerómetro).";
+        } else {
+          errorMessage = "AR no es compatible con este dispositivo/navegador. Algunas funciones pueden no estar disponibles.";
+        }
+
         toast({
-          title: "Error al verificar soporte AR",
-          description: "No se pudo determinar si tu dispositivo soporta AR. Asegúrate de que los permisos de cámara estén habilitados.",
+          title: "AR no disponible",
+          description: errorMessage,
           variant: "destructive",
           duration: 7000,
         });

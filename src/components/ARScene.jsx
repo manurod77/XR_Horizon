@@ -14,15 +14,42 @@ const ARScene = ({ artwork, scale, rotation, isPlacementMode = true }) => {
   const [isARSessionActive, setIsARSessionActive] = useState(false);
   const [placedArtworks, setPlacedArtworks] = useState([]);
   const [sessionError, setSessionError] = useState(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+
+  useEffect(() => {
+    // Verificar permisos de cámara al montar el componente
+    const checkCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop());
+        setIsCameraReady(true);
+      } catch (error) {
+        console.error('Error al acceder a la cámara:', error);
+        setSessionError('No se pudo acceder a la cámara. Por favor, asegúrate de dar permiso de acceso.');
+        toast({
+          title: "Error de cámara",
+          description: "No se pudo acceder a la cámara. Verifica los permisos en la configuración de tu navegador.",
+          variant: "destructive",
+          duration: 7000,
+        });
+      }
+    };
+
+    checkCameraPermission();
+  }, [toast]);
 
   const handleARSessionStarted = useCallback(() => {
+    if (!isCameraReady) {
+      setSessionError('La cámara no está lista. Por favor, verifica los permisos.');
+      return;
+    }
     setIsARSessionActive(true);
     setSessionError(null);
     toast({
       title: "Sesión AR iniciada",
       description: "Mueve tu dispositivo para detectar superficies. Toca para colocar la obra.",
     });
-  }, [toast]);
+  }, [toast, isCameraReady]);
 
   const handleARSessionEnded = useCallback(() => {
     setIsARSessionActive(false);
@@ -136,37 +163,50 @@ const ARScene = ({ artwork, scale, rotation, isPlacementMode = true }) => {
 
   return (
     <div className="ar-scene">
-      <ARButton
-        sessionInit={{
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['dom-overlay'],
-          domOverlay: { root: document.body }
-        }}
-        onStart={handleARSessionStarted}
-        onEnd={handleARSessionEnded}
-        onError={handleSessionError}
-        className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 px-6 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-full font-semibold shadow-xl hover:from-primary/90 hover:to-purple-500/90 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
-      >
-        {isARSessionActive ? "Salir de AR" : "Iniciar AR"}
-      </ARButton>
-      <Canvas
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: 'high-performance',
-          failIfMajorPerformanceCaveat: true
-        }}
-        dpr={[1, 2]}
-        camera={{ position: [0, 0, 0], near: 0.1, far: 1000 }}
-      >
-        <XR>
-          <ambientLight intensity={1.2} />
-          <directionalLight position={[5, 10, 7.5]} intensity={1.5} castShadow />
-          <Suspense fallback={null}>
-            {isARSessionActive && <ARPlacement />}
-          </Suspense>
-        </XR>
-      </Canvas>
+      {isCameraReady ? (
+        <>
+          <ARButton
+            sessionInit={{
+              requiredFeatures: ['hit-test'],
+              optionalFeatures: ['dom-overlay'],
+              domOverlay: { root: document.body }
+            }}
+            onStart={handleARSessionStarted}
+            onEnd={handleARSessionEnded}
+            onError={handleSessionError}
+            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 px-6 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-full font-semibold shadow-xl hover:from-primary/90 hover:to-purple-500/90 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
+          >
+            {isARSessionActive ? "Salir de AR" : "Iniciar AR"}
+          </ARButton>
+          <Canvas
+            gl={{
+              antialias: true,
+              alpha: true,
+              powerPreference: 'high-performance',
+              failIfMajorPerformanceCaveat: true
+            }}
+            dpr={[1, 2]}
+            camera={{ position: [0, 0, 0], near: 0.1, far: 1000 }}
+          >
+            <XR>
+              <ambientLight intensity={1.2} />
+              <directionalLight position={[5, 10, 7.5]} intensity={1.5} castShadow />
+              <Suspense fallback={null}>
+                {isARSessionActive && <ARPlacement />}
+              </Suspense>
+            </XR>
+          </Canvas>
+        </>
+      ) : (
+        <div className="ar-scene flex flex-col items-center justify-center p-4 text-center">
+          <CameraOff className="h-16 w-16 text-destructive mb-4" />
+          <h2 className="text-2xl font-bold text-destructive mb-2">Cámara no disponible</h2>
+          <p className="text-muted-foreground mb-4">
+            {sessionError || 'Esperando acceso a la cámara...'}
+          </p>
+          <Button onClick={() => window.location.reload()}>Reintentar</Button>
+        </div>
+      )}
     </div>
   );
 };
