@@ -1,13 +1,21 @@
-
 <!doctype html>
 <html lang="es">
 	<head>
 		<meta charset="UTF-8" />
 		<link rel="icon" type="image/svg+xml" href="/vite.svg" />
 		<meta name="generator" content="Hostinger Horizons" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 		<meta name="description" content="Galería de arte en realidad aumentada - Explora esculturas, pinturas y arte digital en tu espacio real" />
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<title>AR Art Gallery</title>
+		<!-- ARCore -->
+		<script async src="https://unpkg.com/@google/model-viewer@1.13.0/dist/model-viewer.min.js"></script>
+		<script async src="https://unpkg.com/@google/ar-core@1.0.0/dist/ar-core.js"></script>
+		<script async src="https://unpkg.com/@google/ar-three@1.0.0/dist/ar-three.js"></script>
+		<!-- Permisos -->
+		<meta http-equiv="Permissions-Policy" content="camera=*, microphone=*" />
 	</head>
 	<body>
 		<div id="root"></div>

@@ -4,10 +4,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
-import ARScene from '@/components/ARScene';
+import ARCoreScene from '@/components/ARCoreScene';
 import ARControls from '@/components/ARControls';
 import { useArtworks } from '@/contexts/ArtworksContext';
-import { useARSupport } from '@/contexts/ARSupportContext';
 import { Loader2 } from 'lucide-react';
 
 const ARView = () => {
@@ -15,7 +14,6 @@ const ARView = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { artworks, getArtworkById } = useArtworks();
-  const { isARSupported, isCheckingSupport, arSupportError } = useARSupport();
   
   const [selectedArtwork, setSelectedArtwork] = useState(null);
   const [isArtworkSelectorOpen, setIsArtworkSelectorOpen] = useState(false);
@@ -33,12 +31,10 @@ const ARView = () => {
       if (artwork) {
         setSelectedArtwork(artwork);
         setIsLoading(false);
-        if (isARSupported) {
-          toast({
-            title: "Obra seleccionada",
-            description: `"${artwork.title}" está lista. Inicia AR para colocarla.`,
-          });
-        }
+        toast({
+          title: "Obra seleccionada",
+          description: `"${artwork.title}" está lista. Inicia AR para colocarla.`,
+        });
       } else {
         setError("La obra de arte solicitada no se pudo encontrar.");
         setIsLoading(false);
@@ -52,14 +48,9 @@ const ARView = () => {
     } else {
       setIsLoading(false);
     }
-  }, [location.search, getArtworkById, toast, navigate, isARSupported]);
+  }, [location.search, getArtworkById, toast, navigate]);
 
   const handleReset = () => {
-    // This will be handled by ARScene's onSessionEnd or a specific reset function there
-    // For now, we can clear the selected artwork to allow re-selection or re-placement
-    // setSelectedArtwork(null); // This might be too aggressive, depends on desired UX
-    // The ARScene itself should manage placed artworks.
-    // We can trigger a reset within ARScene if needed.
     toast({
       title: "Escena reiniciada",
       description: "Se han eliminado las obras colocadas. Puedes volver a colocar la obra actual o seleccionar una nueva.",
@@ -81,14 +72,12 @@ const ARView = () => {
   const handleSelectArtwork = (artwork) => {
     setSelectedArtwork(artwork);
     setIsArtworkSelectorOpen(false);
-    setScale(1); // Reset scale for new artwork
-    setRotation(0); // Reset rotation for new artwork
-    if (isARSupported) {
-      toast({
-        title: "Obra cambiada",
-        description: `"${artwork.title}" está lista. Inicia AR o, si ya está activa, toca para colocarla.`,
-      });
-    }
+    setScale(1);
+    setRotation(0);
+    toast({
+      title: "Obra cambiada",
+      description: `"${artwork.title}" está lista. Inicia AR o, si ya está activa, toca para colocarla.`,
+    });
   };
 
   const toggleArtworkSelector = () => {
@@ -131,22 +120,20 @@ const ARView = () => {
       <Header title="Explorar en AR" showBackButton={true} />
       
       <div className="flex-grow relative">
-        <ARScene 
+        <ARCoreScene 
           artwork={selectedArtwork} 
           scale={scale} 
           rotation={rotation} 
         />
       </div>
       
-      {isARSupported && (
-        <ARControls 
-          onReset={handleReset}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onRotate={handleRotate}
-          artwork={selectedArtwork}
-        />
-      )}
+      <ARControls 
+        onReset={handleReset}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onRotate={handleRotate}
+        artwork={selectedArtwork}
+      />
       
       <motion.div 
         className="fixed left-4 bottom-24 md:bottom-20 z-20"
@@ -205,22 +192,6 @@ const ARView = () => {
           )}
         </motion.div>
       </motion.div>
-      
-      {arSupportError && !isARSupported && (
-        <motion.div 
-          className="fixed top-16 left-0 right-0 mx-auto max-w-md z-20 p-4"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <div className="glassmorphism border-yellow-500/30 p-4 rounded-lg">
-            <h3 className="text-yellow-500 font-medium mb-1">Modo de Vista Previa Activo</h3>
-            <p className="text-sm text-muted-foreground">
-              {arSupportError}
-            </p>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 };
